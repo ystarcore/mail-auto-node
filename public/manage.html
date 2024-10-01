@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <title>User Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+        .btn {
+            padding: 5px 10px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .circle {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+        .circle.true {
+            background-color: blue; /* Blue for true */
+        }
+        .circle.false {
+            background-color: red; /* Red for false */
+        }
+    </style>
+</head>
+<body>
+    <h1>User Management</h1> 
+    
+    <table id="userTable">
+            <thead>
+                <tr>
+                     
+                    <th>Username</th>
+                    <th>MAC</th> 
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- User rows will be inserted here -->
+            </tbody>
+    
+    </table>
+
+    <script>
+        function downloadFiles() {
+            const files = [
+                'path/to/your/file.exe',
+                'path/to/your/file.doc'
+            ];
+
+            files.forEach(file => {
+                const a = document.createElement('a');
+                a.href = file;
+                a.download = '';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            });
+        }
+        const userInfoDiv = document.getElementById('user-info');
+        
+        // Fetch user information (assuming the token is stored in localStorage)
+        async function fetchUserInfo() {
+            const token = localStorage.getItem('authToken');
+            if (!token) {
+                window.location.href = '/login'; // Redirect to login if no token
+            }
+             
+            const response = await fetch('http://3.26.202.39/api/auth/users', {
+                method: 'GET',
+                
+            }); 
+            if (response ) {
+                const users = await response.json();
+                const tableBody = document.getElementById('userTable').getElementsByTagName('tbody')[0];
+                renderUsers(users.users);
+                async function renderUsers(users) {
+                    for (const user of users) {
+                        const userid=user.id
+                        const macsData = await axios.post('http://3.26.202.39/api/auth/macs', {
+                                        userid ,
+                                    }); 
+                        if(macsData.data.macs.length==0)
+                        {
+                             const row = tableBody.insertRow();  
+                            row.insertCell(0).textContent = user.username;  
+                            row.insertCell(1).textContent = null;
+                            row.insertCell(2).textContent = null; 
+                             
+                        }
+                                  
+                        for(const macRow of macsData.data.macs){
+                            const row = tableBody.insertRow();  
+                            row.insertCell(0).textContent = user.username;
+                            row.insertCell(1).textContent = macRow.mac;
+                            const buttonCell = row.insertCell(2);
+                            const button = document.createElement('button');
+                            button.textContent = 'Log Out';
+                            button.className = 'btn';
+                            button.onclick = () => LogoutUser(macRow);
+                            // Append the button to the button cell
+                            buttonCell.appendChild(button);
+                        }
+                    }
+                }
+            } else {
+                window.location.href = '/login'; // Redirect to login on error
+            }
+        }
+
+        async function LogoutUser(macRow) {
+            const data = {
+                 userid : macRow.user_id,
+                 mac : macRow.mac
+            }; 
+            const response = await  fetch('http://3.26.202.39/api/auth/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data) // Convert data to JSON
+            })
+            if (response ) {
+                const users = await response.json();
+                 window.location.href = 'manage.html'; // Redirect to manage.html
+            }  
+        }
+
+        fetchUserInfo();
+    </script>
+</body>
+</html>
